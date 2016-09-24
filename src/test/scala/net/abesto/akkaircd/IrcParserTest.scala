@@ -21,28 +21,36 @@ import org.scalatest.{FlatSpec, Matchers}
 
 class IrcParserTest extends FlatSpec with Matchers {
   class TestParser(input: String) extends IrcParser(input) {
-    def test(r: Rule0): Rule0 = rule { r ~ EOI }
+    def test0(r: Rule0): Rule0 = rule { r ~ EOI }
+  }
+
+  protected def testRule0(toRule: (TestParser => Rule0), cases: Map[String, Boolean]) = {
+    cases.foreach {
+      case (input, success) =>
+        val p = new TestParser(input)
+        p.test0(toRule(p)).run().isSuccess should equal (success)
+    }
   }
 
   "nickname parser" should "match valid usernames" in {
-    Map(
-      "arst" -> true,
-      "[]\\`_^{|}" -> true,
-      "333" -> false
-    ).foreach{
-      case (input, success) =>
-        val p = new TestParser(input)
-        p.test(p.nickname).run().isSuccess should equal (success)
-    }
+    testRule0(
+      _.nickname,
+      Map(
+        "arst" -> true,
+        "[]\\`_^{|}" -> true,
+        "333" -> false
+      )
+    )
   }
 
   "message parser" should "parse valid messages into Message objects" in {
     Map(
-      ":pre JOIN #foobar #barbaz\r\n" -> Message(Some("pre"), FallbackCommand("JOIN"), Seq("#foobar", "#barbaz")),
-      "QUIT\r\n" -> Message(None, FallbackCommand("QUIT"), Seq())
-    ).foreach{
-      case (input, output) =>
-        new IrcParser(input).message.run().get should equal (output)
+      ":pre JOIN #foobar #barbaz\r\n" -> Some(Message(Some("pre"), FallbackCommand("JOIN"), Seq("#foobar", "#barbaz"))),
+      "QUIT\r\n" -> Some(Message(None, FallbackCommand("QUIT"), Seq())),
+      "join" -> None
+    ).foreach {
+      case (input, expectedOutput) =>
+        new IrcParser(input).message.run().toOption should equal(expectedOutput)
     }
   }
 }
