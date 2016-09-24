@@ -15,8 +15,8 @@
 package net.abesto.akkaircd
 
 import net.abesto.akkaircd.model.Message
-import net.abesto.akkaircd.model.commands.FallbackCommand
-import org.parboiled2.{Rule0, Rule1}
+import net.abesto.akkaircd.model.commands.{FallbackCommand, NumericCommand}
+import org.parboiled2.Rule0
 import org.scalatest.{FlatSpec, Matchers}
 
 class IrcParserTest extends FlatSpec with Matchers {
@@ -32,7 +32,7 @@ class IrcParserTest extends FlatSpec with Matchers {
     }
   }
 
-  "nickname parser" should "match valid usernames" in {
+  "nickname parser" should "match valid usernames only" in {
     testRule0(
       _.nickname,
       Map(
@@ -41,6 +41,48 @@ class IrcParserTest extends FlatSpec with Matchers {
         "333" -> false
       )
     )
+  }
+
+  "command parser" should "parse valid commands into Command objects" in {
+    Map(
+      "100" -> NumericCommand(100), // scalastyle:ignore magic.number
+      "fooBAR" -> FallbackCommand("fooBAR")
+    ).foreach {
+      case (input, expected) =>
+        new IrcParser(input).command.run().get should equal(expected)
+    }
+  }
+
+  "command parser" should "reject invalid commands" in {
+    Seq("1", "10", "2fo", "foo2").foreach { input =>
+      withClue(input) {
+        new IrcParser(input).commandWithEOI.run().isSuccess should equal(false)
+      }
+    }
+  }
+
+  "params parser" should "capture a Seq[String] for valid inputs" in {
+    Map(
+      "" -> Seq.empty,
+      " a" -> Seq("a"),
+      " a b" -> Seq("a", "b"),
+      " a b :asdf qwer" -> Seq("a", "b", "asdf qwer"),
+      " 1 2 3 4 5 6 7 8 9 10 11 12 13 14 asdf qwer" -> ((1 to 14).map(_.toString) :+ "asdf qwer"),
+      " 1 2 3 4 5 6 7 8 9 10 11 12 13 14 :asdf qwer" -> ((1 to 14).map(_.toString) :+ "asdf qwer")
+    ).foreach {
+      case (input, expected) =>
+        withClue(s"'$input'") {
+          val result = new IrcParser(input).paramsWithEOI.run()
+          result.isSuccess should be(true)
+          result.get should equal(expected)
+        }
+    }
+  }
+
+  "params parser" should "reject invalid inputs" in {
+    Seq(" ", "a  b").foreach {
+      new IrcParser(_).paramsWithEOI.run().isSuccess should be (false)
+    }
   }
 
   "message parser" should "parse valid messages into Message objects" in {

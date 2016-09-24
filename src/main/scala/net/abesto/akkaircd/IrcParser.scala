@@ -16,9 +16,10 @@ package net.abesto.akkaircd
 
 import net.abesto.akkaircd.model.Message
 import net.abesto.akkaircd.model.commands.Command
+import org.parboiled2._
+import shapeless.{::, HNil}
 
 import scala.language.{implicitConversions, postfixOps}
-import org.parboiled2._
 
 // scalastyle:off number.of.methods
 
@@ -39,7 +40,7 @@ class IrcParser(val input: ParserInput) extends Parser {
       (":" ~ (capture(prefix) ~> (Some(_)) ~ space)  // Capture the string part of the prefix, if it exists
         | push(None))                                // Otherwise push None to the value stack to denote that there's no prefix
         ~ command
-        ~ (params | push(Seq.empty))                 // Same trick for params
+        ~ params
         ~ crlf ~ EOI) ~> Message
   }
 
@@ -52,14 +53,21 @@ class IrcParser(val input: ParserInput) extends Parser {
       (capture(3.times(digit)) ~> Command.fromNumeric _)
   }
 
+  def commandWithEOI: Rule1[Command] = rule {
+    command ~ EOI
+  }
+
+  def paramsWithEOI: Rule1[Seq[String]] = rule {
+    params ~ EOI
+  }
+  def longParams: Rule1[Seq[String]] = rule {
+    14.times(space ~ capture(middle)) ~ optional(space ~ optional(":") ~ trailing)
+  }
+
   //  params     =  *14( SPACE middle ) [ SPACE ":" trailing ]
   //             =/ 14( SPACE middle ) [ SPACE [ ":" ] trailing ]
   def params: Rule1[Seq[String]] = rule {
-    longParams | shortParams
-  }
-
-  def longParams: Rule1[Seq[String]] = rule {
-    14.times(space ~ capture(middle)) ~ optional(space ~ optional(":") ~ trailing)
+    longParams | shortParams | push(Seq.empty)
   }
 
   def shortParams: Rule1[Seq[String]] = rule {
@@ -77,7 +85,9 @@ class IrcParser(val input: ParserInput) extends Parser {
   def middle: Rule0 = rule { nospcrlfcl ~ zeroOrMore(":" | nospcrlfcl) }
 
   //  trailing   =  *( ":" / " " / nospcrlfcl )
-  def trailing: Rule0 = rule { zeroOrMore(":" | " " | nospcrlfcl) }
+  def trailing: Rule[Seq[String] :: HNil, Seq[String] :: HNil] = rule {
+    capture(zeroOrMore(":" | " " | nospcrlfcl)) ~> ((ps: Seq[String], x: String) => ps :+ x)
+  }
 
   //  SPACE      =  %x20        ; space character
   def space: Rule0 = rule { 0x20.toChar }
