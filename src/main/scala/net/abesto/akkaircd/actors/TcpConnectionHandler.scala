@@ -22,16 +22,18 @@ object TcpConnectionHandler {
 class TcpConnectionHandler extends Actor with ActorLogging {
   import Tcp._
   import TcpConnectionHandler._
-  import context.dispatcher
-
-  var connection: ActorRef = _
+  import context._
 
   def userDB = context.actorSelection("akka://Main/user/app/userDB")
+  def receive = uninitialized
 
-  def receive = {
-    case Messages.Connection(c) =>
-      connection = c
+  def uninitialized: Receive = {
+    case Messages.Connection(connection) =>
       connection ! Register(self)
+      become(initialized(connection))
+  }
+
+  def initialized(connection: ActorRef): Receive = {
     case Messages.Write(msg) =>
       connection ! Write(ByteString(msg))
     case Received(data) =>
