@@ -11,6 +11,8 @@ libraryDependencies ++= Seq(
   // Akka
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
+  // Parsing
+  "org.parboiled" %% "parboiled" % "2.1.3",
   // Logging
   "ch.qos.logback" % "logback-classic" % "1.0.13",
   // Testing
@@ -30,3 +32,6 @@ testScalastyle := org.scalastyle.sbt.ScalastylePlugin.scalastyle.in(Test).toTask
 (test in Test) <<= (test in Test) dependsOn mainScalastyle
 
 (test in Test) <<= (test in Test) dependsOn testScalastyle
+
+// Fail tests on Scalastyle violations
+(scalastyleFailOnError in Test) := true

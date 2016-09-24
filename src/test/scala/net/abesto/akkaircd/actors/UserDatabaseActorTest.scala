@@ -29,7 +29,9 @@ class UserDatabaseActorTest extends TestKit(ActorSystem("UserDatabaseActorTest")
   implicit val timeout = Timeout(5 seconds)
 
   implicit class TestActorRefUtils[T <: Actor](ref: TestActorRef[T]) {
+    // scalastyle:off method.name
     def `??`[R](msg: Any): R = (ref ? msg).value.get.get.asInstanceOf[R]
+    // scalastyle:on method.name
   }
 
   "A UserDatabase" should "should not have any users when created" in {
