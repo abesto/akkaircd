@@ -28,7 +28,9 @@ class IrcParserTest extends FlatSpec with Matchers {
     cases.foreach {
       case (input, success) =>
         val p = new TestParser(input)
-        p.test0(toRule(p)).run().isSuccess should equal (success)
+        withClue(s"For input '$input'") {
+          p.test0(toRule(p)).run().isSuccess should equal(success)
+        }
     }
   }
 
@@ -94,5 +96,28 @@ class IrcParserTest extends FlatSpec with Matchers {
       case (input, expectedOutput) =>
         new IrcParser(input).message.run().toOption should equal(expectedOutput)
     }
+  }
+
+  "shortname parser" should "accept valid inputs only" in {
+    testRule0(_.shortname, Map(
+      "" -> false,
+      "a" -> true,
+      "foobar" -> true,
+      "a-foob-baz" -> true
+    ))
+  }
+
+  "hostname parser" should "accept valid inputs only" in {
+    testRule0(_.hostname, Map(
+      "" -> false,
+      "a" -> true,
+      "a-b" -> true,
+      "a-b." -> false,
+      "a-b.c" -> true,
+      "a.b-c" -> true,
+      // This looks wrong, but the grammar in RFC2812 allows it
+      "a-b.c-" -> true,
+      "a-b.c-d.ef" -> true
+    ))
   }
 }
