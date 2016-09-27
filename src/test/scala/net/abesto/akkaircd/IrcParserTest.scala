@@ -120,4 +120,32 @@ class IrcParserTest extends FlatSpec with Matchers {
       "a-b.c-d.ef" -> true
     ))
   }
+
+  "ip4addr parser" should "accept valid inputs only" in {
+    testRule0(_.ip4addr, Map(
+      "" ->  false,
+      "1." ->  false,
+      "1.2" ->  false,
+      "1.2." ->  false,
+      "1.2.3" ->  false,
+      "1.2.3." ->  false,
+      "1.2.3.4" ->  true,
+      "1.2.3.4." ->  false,
+      ".1.2.3.4" ->  false,
+      "127.0.0.1" ->  true,
+      "0.0.0.0" ->  true,
+      "999.999.999.999" ->  true
+    ))
+  }
+
+  "user parser" should "accept valid inputs only" in {
+    testRule0(_.user, Map(
+      "a b" -> false,
+      "a\rb" -> false,
+      "a\nb" -> false,
+      "a@b" -> false,
+      "asdf" -> true,
+      "!#^QWER" -> true
+    ))
+  }
 }
