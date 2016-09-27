@@ -41,7 +41,7 @@ import net.abesto.akkaircd.model.RawMessage
   * ; Server telling that WiZ changed his
   * nickname to Kilroy.
   */
-case class NickCommand(raw: RawMessage) extends Message {
+class NickCommand(raw: RawMessage) extends Message {
   if (raw.params.isEmpty) {
     throw NumericReplies.ERR_NONICKNAMEGIVEN
   }

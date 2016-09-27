@@ -19,9 +19,7 @@ import net.abesto.akkaircd.model.RawMessage
 object MessageInflator {
 
   protected val byString = Map[String, (RawMessage) => Message](
-    "NICK" -> {
-      NickCommand(_)
-    }
+    "NICK" -> (new NickCommand(_))
   )
 
   def inflate(raw: RawMessage): Message = raw.command match {

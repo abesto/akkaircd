@@ -19,6 +19,6 @@ import net.abesto.akkaircd.model.messages.NickCommand
 
 class MessageHandler extends Actor with ActorLogging {
   override def receive: Receive = {
-    case NickCommand(nickname) => log.info(s"handling NICK ${nickname}")
+    case m: NickCommand => log.info(s"handling NICK ${m.nick}")
   }
 }
