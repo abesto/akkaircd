@@ -12,8 +12,13 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-package net.abesto.akkaircd.model.commands
+package net.abesto.akkaircd.actors
 
-case class FallbackCommand(cmd: String) extends Command {
+import akka.actor.{Actor, ActorLogging}
+import net.abesto.akkaircd.model.messages.NickCommand
 
+class MessageHandler extends Actor with ActorLogging {
+  override def receive: Receive = {
+    case NickCommand(nickname) => log.info(s"handling NICK ${nickname}")
+  }
 }

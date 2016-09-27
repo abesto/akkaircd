@@ -12,15 +12,15 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-package net.abesto.akkaircd
+package net.abesto.akkaircd.parser
 
-import net.abesto.akkaircd.model.Message
-import net.abesto.akkaircd.model.commands.{FallbackCommand, NumericCommand}
+import net.abesto.akkaircd.model.RawMessage
 import org.parboiled2.Rule0
 import org.scalatest.{FlatSpec, Matchers}
 
-class IrcParserTest extends FlatSpec with Matchers {
-  class TestParser(input: String) extends IrcParser(input) {
+class MessageFormatParserTest extends FlatSpec with Matchers {
+
+  class TestParser(input: String) extends MessageFormatParser(input) {
     def test0(r: Rule0): Rule0 = rule { r ~ EOI }
   }
 
@@ -47,18 +47,18 @@ class IrcParserTest extends FlatSpec with Matchers {
 
   "command parser" should "parse valid commands into Command objects" in {
     Map(
-      "100" -> NumericCommand(100), // scalastyle:ignore magic.number
-      "fooBAR" -> FallbackCommand("fooBAR")
+      "100" -> Right(100), // scalastyle:ignore magic.number
+      "fooBAR" -> Left("fooBAR")
     ).foreach {
       case (input, expected) =>
-        new IrcParser(input).command.run().get should equal(expected)
+        new MessageFormatParser(input).command.run().get should equal(expected)
     }
   }
 
   "command parser" should "reject invalid commands" in {
     Seq("1", "10", "2fo", "foo2").foreach { input =>
       withClue(input) {
-        new IrcParser(input).commandWithEOI.run().isSuccess should equal(false)
+        new MessageFormatParser(input).commandWithEOI.run().isSuccess should equal(false)
       }
     }
   }
@@ -74,7 +74,7 @@ class IrcParserTest extends FlatSpec with Matchers {
     ).foreach {
       case (input, expected) =>
         withClue(s"'$input'") {
-          val result = new IrcParser(input).paramsWithEOI.run()
+          val result = new MessageFormatParser(input).paramsWithEOI.run()
           result.isSuccess should be(true)
           result.get should equal(expected)
         }
@@ -83,18 +83,18 @@ class IrcParserTest extends FlatSpec with Matchers {
 
   "params parser" should "reject invalid inputs" in {
     Seq(" ", "a  b").foreach {
-      new IrcParser(_).paramsWithEOI.run().isSuccess should be (false)
+      new MessageFormatParser(_).paramsWithEOI.run().isSuccess should be(false)
     }
   }
 
   "message parser" should "parse valid messages into Message objects" in {
     Map(
-      ":pre JOIN #foobar #barbaz\r\n" -> Some(Message(Some("pre"), FallbackCommand("JOIN"), Seq("#foobar", "#barbaz"))),
-      "QUIT\r\n" -> Some(Message(None, FallbackCommand("QUIT"), Seq())),
+      ":pre JOIN #foobar #barbaz\r\n" -> Some(RawMessage(Some("pre"), Left("JOIN"), Seq("#foobar", "#barbaz"))),
+      "QUIT\r\n" -> Some(RawMessage(None, Left("QUIT"), Seq())),
       "join" -> None
     ).foreach {
       case (input, expectedOutput) =>
-        new IrcParser(input).message.run().toOption should equal(expectedOutput)
+        new MessageFormatParser(input).message.run().toOption should equal(expectedOutput)
     }
   }
 

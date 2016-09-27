@@ -16,23 +16,18 @@ package net.abesto.akkaircd.actors
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.io.Tcp
-import akka.pattern.ask
-import akka.util.{ByteString, Timeout}
-import net.abesto.akkaircd.actors.UserDatabase.Messages.AllUsers
+import akka.util.ByteString
+import net.abesto.akkaircd.model.messages.{MessageInflator, NumericReply}
+import net.abesto.akkaircd.parser.MessageFormatParser
 
-import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.util.{Failure, Success}
 
 object TcpConnectionHandler {
-
   object Messages {
-
     case class Connection(c: ActorRef)
-
     case class Write(msg: String)
-
   }
-
 }
 
 class TcpConnectionHandler extends Actor with ActorLogging {
@@ -43,28 +38,33 @@ class TcpConnectionHandler extends Actor with ActorLogging {
 
   def receive: Receive = uninitialized
 
-  protected def uninitialized: Receive = {
+  def uninitialized: Receive = {
     case Messages.Connection(connection) =>
       connection ! Register(self)
       become(initialized(connection))
   }
 
-  protected def initialized(connection: ActorRef): Receive = {
+  def initialized(connection: ActorRef): Receive = {
     case Messages.Write(msg) =>
       connection ! Write(ByteString(msg))
+
     case Received(data) =>
-      val string: String = data.decodeString("UTF-8")
-      log.info(s"[in] $string")
       assert(connection == sender())
-      implicit val timeout = Timeout(1 second)
-      for {users <- (userDB ? AllUsers).mapTo[Seq[User]]}
-        yield users.foreach { it =>
-          log.info(s"broadcasting to $it")
-          it.tcp ! Messages.Write(string)
+      val string: String = data.decodeString("UTF-8")
+      log.debug(s"[in] $string")
+      new MessageFormatParser(string).message.run() match {
+        case Failure(exception) => log.debug(s"Failed to parse message '$string': $exception")
+        case Success(value) => try {
+          SingletonActors.messageHandler ! MessageInflator.inflate(value)
+        } catch {
+          case MessageInflator.UnknownCommand(cmd) => log.debug(s"Unknown command: $cmd")
+          // TODO: star here needs to be the nickname, if set
+          case num: NumericReply => connection ! Write(ByteString(s":akkairc.localhost ${num.num} * :${num.desc}\r\n"))
+          case default: Throwable => log.error(default, "whoooo what's going on")
         }
+      }
+
     case PeerClosed =>
       context stop self
   }
-
-  protected def userDB = context.actorSelection("akka://Main/user/app/userDB")
 }

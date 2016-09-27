@@ -19,7 +19,8 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.io.{IO, Tcp}
 import net.abesto.akkaircd.Settings
-import net.abesto.akkaircd.actors.UserDatabase.Messages.Join
+import net.abesto.akkaircd.actors.UserRegistry.Messages.Join
+import net.abesto.akkaircd.model.UserRef
 
 object TcpListenerMessages {
 
@@ -49,10 +50,8 @@ class TcpListenerActor extends Actor with ActorLogging {
       log.info(s"Received connection $remote $local")
       val handler = context.actorOf(Props[TcpConnectionHandler])
       handler ! TcpConnectionHandler.Messages.Connection(sender())
-      userDB ! Join(User(handler))
+      SingletonActors.userDB ! Join(UserRef(handler))
   }
-
-  protected def userDB = context.actorSelection("akka://Main/user/app/userDB")
 }
 
 

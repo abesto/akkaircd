@@ -12,19 +12,22 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-package net.abesto.akkaircd.actors
+package net.abesto.akkaircd.model.messages
 
-import akka.actor.Actor
+import net.abesto.akkaircd.model.RawMessage
 
-class MainActor extends Actor {
+object MessageInflator {
 
-  override def preStart(): Unit = {
-    SingletonActors.initialize(context)
-    SingletonActors.tcpListener ! TcpListenerMessages.Listen
+  protected val byString = Map[String, (RawMessage) => Message](
+    "NICK" -> {
+      NickCommand(_)
+    }
+  )
+
+  def inflate(raw: RawMessage): Message = raw.command match {
+    case Left(s) => byString.get(s).map(_ (raw)).getOrElse(throw UnknownCommand(s))
+    case Right(n) => NumericReplies.byNumber(n)
   }
 
-  def receive: Receive = {
-    case x => ()
-  }
+  case class UnknownCommand(cmd: String) extends Throwable {}
 }
-

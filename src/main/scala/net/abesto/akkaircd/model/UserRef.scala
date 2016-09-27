@@ -12,8 +12,10 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-package net.abesto.akkaircd.model.commands
+package net.abesto.akkaircd.model
 
-case class NumericCommand(num: Int) extends Command {
+import akka.actor.ActorRef
+
+case class UserRef(tcp: ActorRef, user: User = User()) {
 
 }

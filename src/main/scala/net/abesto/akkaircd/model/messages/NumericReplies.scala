@@ -12,10 +12,23 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-package net.abesto.akkaircd.model
+package net.abesto.akkaircd.model.messages
 
-import net.abesto.akkaircd.model.commands.Command
+import scala.collection.mutable
 
-case class Message(prefix: Option[String], command: Command, params: Seq[String]) {
+case class NumericReply(num: Int, desc: String) extends Throwable with Message {}
 
+object NumericReplies {
+  val byNumber = mutable.HashMap[Int, NumericReply]()
+
+  // scalastyle:off method.name magic.number
+  Map[Int, String](
+    431 -> "No nickname given"
+  ).foreach {
+    case (num, desc) => byNumber += ((num, NumericReply(num, desc)))
+  }
+
+  /** Returned when a nickname parameter expected for a command and isn't found. */
+  val ERR_NONICKNAMEGIVEN: NumericReply = byNumber(431)
+  // scalastyle:on method.name magic.number
 }

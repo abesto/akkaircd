@@ -12,16 +12,37 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-package net.abesto.akkaircd.model.commands
+package net.abesto.akkaircd.actors
 
-abstract class Command {
+import akka.actor.{Actor, ActorLogging}
+import net.abesto.akkaircd.model.UserRef
 
+
+object UserRegistry {
+  object Messages {
+
+    case class Join(ref: UserRef)
+
+    case class Leave(ref: UserRef)
+    object AllUsers
+  }
 }
 
-object Command {
-  def fromString(s: String): FallbackCommand = s match {
-    case s => FallbackCommand(s)
-  }
 
-  def fromNumeric(s: String): NumericCommand = NumericCommand(s.toInt)
+class UserRegistry extends Actor with ActorLogging {
+
+  import UserRegistry.Messages._
+
+  var users: Seq[UserRef] = Seq()
+
+  def receive: Receive = {
+    case Join(user) =>
+      users :+= user
+      user.tcp ! TcpConnectionHandler.Messages.Write(s"welcome! we have ${users.length} users.\n")
+
+    case Leave(user) =>
+      users = users.filter(_ != user)
+
+    case AllUsers => sender() ! users
+  }
 }

@@ -12,10 +12,9 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-package net.abesto.akkaircd
+package net.abesto.akkaircd.parser
 
-import net.abesto.akkaircd.model.Message
-import net.abesto.akkaircd.model.commands.Command
+import net.abesto.akkaircd.model.RawMessage
 import org.parboiled2._
 import shapeless.{::, HNil}
 
@@ -24,9 +23,9 @@ import scala.language.{implicitConversions, postfixOps}
 // scalastyle:off number.of.methods
 
 /**
- * Implements parsing logic for the ABNF defined in rfc2812
+  * Implements parsing logic for the grammar defined in RFC2812 section 2.3.1: Message format in Augmented BNF
  */
-class IrcParser(val input: ParserInput) extends Parser {
+class MessageFormatParser(val input: ParserInput) extends Parser {
   implicit def rangeToString(r: Range): String = r.map(_.toChar).mkString
 
   ////////////////////////////////////////////////////
@@ -35,26 +34,26 @@ class IrcParser(val input: ParserInput) extends Parser {
   ////////////////////////////////////////////////////
 
   //  message    =  [ ":" prefix SPACE ] command [ params ] crlf
-  def message: Rule1[Message] = rule {
+  def message: Rule1[RawMessage] = rule {
     (
       (":" ~ (capture(prefix) ~> (Some(_)) ~ space)  // Capture the string part of the prefix, if it exists
         | push(None))                                // Otherwise push None to the value stack to denote that there's no prefix
         ~ command
         ~ params
-        ~ crlf ~ EOI) ~> Message
+        ~ crlf ~ EOI) ~> RawMessage
   }
 
   //  prefix     =  servername / ( nickname [ [ "!" user ] "@" host ] )
   def prefix: Rule0 = rule { servername | (nickname ~ optional(optional("!" ~ user) ~ "@" ~ host)) }
 
-  //  command    =  1*letter / 3digit
-  def command: Rule1[Command] = rule {
-    (capture(oneOrMore(letter)) ~> Command.fromString _) |
-      (capture(3.times(digit)) ~> Command.fromNumeric _)
+  def commandWithEOI: Rule1[Either[String, Int]] = rule {
+    command ~ EOI
   }
 
-  def commandWithEOI: Rule1[Command] = rule {
-    command ~ EOI
+  //  command    =  1*letter / 3digit
+  def command: Rule1[Either[String, Int]] = rule {
+    (capture(oneOrMore(letter)) ~> { s: String => Left(s) }) |
+      (capture(3.times(digit)) ~> { s: String => Right(s.toInt) })
   }
 
   def paramsWithEOI: Rule1[Seq[String]] = rule {

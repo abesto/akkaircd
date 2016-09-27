@@ -12,42 +12,15 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-package net.abesto.akkaircd.actors
+package net.abesto.akkaircd.model.messages
 
-import akka.actor.{Actor, ActorLogging, ActorRef}
-
-case class User(tcp: ActorRef)
-
-
-object UserDatabase {
-
-  object Messages {
-
-    case class Join(user: User)
-
-    case class Leave(user: User)
-
-    object AllUsers
-
-  }
-
-}
+import akka.actor.ActorSystem
+import akka.testkit.TestKit
+import org.scalatest.{FlatSpecLike, Matchers}
 
 
-class UserDatabase extends Actor with ActorLogging {
+class NickCommandTest extends TestKit(ActorSystem("NickCommandTest")) with FlatSpecLike with Matchers {
+  "NICK" should "return ERR_NONICKNAMEGIVEN if called without parameters" in {
 
-  import UserDatabase.Messages._
-
-  var users: Seq[User] = Seq()
-
-  def receive: Receive = {
-    case Join(user) =>
-      users :+= user
-      user.tcp ! TcpConnectionHandler.Messages.Write(s"welcome! we have ${users.length} users.\n")
-
-    case Leave(user) =>
-      users = users.filter(_ != user)
-
-    case AllUsers => sender() ! users
   }
 }

@@ -12,19 +12,8 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-package net.abesto.akkaircd.actors
+package net.abesto.akkaircd.model
 
-import akka.actor.Actor
+case class RawMessage(prefix: Option[String], command: Either[String, Int], params: Seq[String]) {
 
-class MainActor extends Actor {
-
-  override def preStart(): Unit = {
-    SingletonActors.initialize(context)
-    SingletonActors.tcpListener ! TcpListenerMessages.Listen
-  }
-
-  def receive: Receive = {
-    case x => ()
-  }
 }
-
