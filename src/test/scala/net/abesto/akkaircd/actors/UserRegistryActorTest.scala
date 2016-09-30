@@ -14,26 +14,17 @@
 
 package net.abesto.akkaircd.actors
 
-import akka.actor.{Actor, ActorSystem}
 import akka.pattern.ask
-import akka.testkit.{TestActorRef, TestKit, TestProbe}
-import akka.util.Timeout
-import net.abesto.akkaircd.actors.TcpConnectionHandler.Messages.Write
-import net.abesto.akkaircd.actors.UserRegistry.Messages.{AllUsers, Join, Leave}
+import akka.testkit.{TestActorRef, TestProbe}
+import net.abesto.akkaircd.IntegrationTest
+import net.abesto.akkaircd.actors.UserRegistry.Messages.{AllUsers, GetByTcpConnection, Join, Leave}
 import net.abesto.akkaircd.model.UserRef
-import org.scalatest.{FlatSpecLike, Matchers}
 
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class UserRegistryActorTest extends TestKit(ActorSystem("UserDatabaseActorTest")) with FlatSpecLike with Matchers {
-  implicit val timeout = Timeout(5 seconds)
+class UserRegistryActorTest extends IntegrationTest("UserRegistryActorTest") {
 
-  implicit class TestActorRefUtils[T <: Actor](ref: TestActorRef[T]) {
-    // scalastyle:off method.name
-    def `??`[R](msg: Any): R = (ref ? msg).value.get.get.asInstanceOf[R]
-    // scalastyle:on method.name
-  }
+  import scala.concurrent.ExecutionContext.Implicits.global
 
   "A UserDatabase" should "should not have any users when created" in {
     val db = TestActorRef(new UserRegistry)
@@ -41,23 +32,10 @@ class UserRegistryActorTest extends TestKit(ActorSystem("UserDatabaseActorTest")
     users.isEmpty should be(true)
   }
 
-  it should "welcome joining users with the user count" in {
-    val db = TestActorRef(new UserRegistry)
-
-    val probe1 = TestProbe()
-    db ! Join(UserRef(probe1.ref))
-    probe1.expectMsg(Write("welcome! we have 1 users.\n"))
-
-    val probe2 = TestProbe()
-    db ! Join(UserRef(probe2.ref))
-    probe1.expectNoMsg()
-    probe2.expectMsg(Write("welcome! we have 2 users.\n"))
-  }
-
   it should "correctly maintain the list of users" in {
     val db = TestActorRef(new UserRegistry)
 
-    val Seq(u1, u2, u3) = Seq(UserRef(TestProbe().ref), UserRef(TestProbe().ref), UserRef(TestProbe().ref))
+    val Seq(u1, u2, u3) = Seq(UserRef(testActor, TestProbe().ref), UserRef(testActor, TestProbe().ref), UserRef(testActor, TestProbe().ref))
     db ! Join(u1)
     db ! Join(u2)
     db ! Join(u3)
@@ -68,5 +46,13 @@ class UserRegistryActorTest extends TestKit(ActorSystem("UserDatabaseActorTest")
     db ! Leave(u2)
     val usersAfterLeave: Seq[UserRef] = db ?? AllUsers
     usersAfterLeave should equal(Seq(u1, u3))
+  }
+
+  it should "be able to look up users by TCP connection ActorRef" in {
+    val db = TestActorRef(new UserRegistry)
+    db ! Join(UserRef(testActor, TestProbe().ref))
+    for {
+      result <- db ? GetByTcpConnection(testActor)
+    } yield result should equal(testActor)
   }
 }

@@ -20,10 +20,6 @@ import org.scalatest.{FlatSpec, Matchers}
 
 class MessageFormatParserTest extends FlatSpec with Matchers {
 
-  class TestParser(input: String) extends MessageFormatParser(input) {
-    def test0(r: Rule0): Rule0 = rule { r ~ EOI }
-  }
-
   protected def testRule0(toRule: (TestParser => Rule0), cases: Map[String, Boolean]) = {
     cases.foreach {
       case (input, success) =>
@@ -31,6 +27,12 @@ class MessageFormatParserTest extends FlatSpec with Matchers {
         withClue(s"For input '$input'") {
           p.test0(toRule(p)).run().isSuccess should equal(success)
         }
+    }
+  }
+
+  class TestParser(input: String) extends MessageFormatParser(input) {
+    def test0(r: Rule0): Rule0 = rule {
+      r ~ EOI
     }
   }
 
@@ -123,18 +125,18 @@ class MessageFormatParserTest extends FlatSpec with Matchers {
 
   "ip4addr parser" should "accept valid inputs only" in {
     testRule0(_.ip4addr, Map(
-      "" ->  false,
-      "1." ->  false,
-      "1.2" ->  false,
-      "1.2." ->  false,
-      "1.2.3" ->  false,
-      "1.2.3." ->  false,
-      "1.2.3.4" ->  true,
-      "1.2.3.4." ->  false,
-      ".1.2.3.4" ->  false,
-      "127.0.0.1" ->  true,
-      "0.0.0.0" ->  true,
-      "999.999.999.999" ->  true
+      "" -> false,
+      "1." -> false,
+      "1.2" -> false,
+      "1.2." -> false,
+      "1.2.3" -> false,
+      "1.2.3." -> false,
+      "1.2.3.4" -> true,
+      "1.2.3.4." -> false,
+      ".1.2.3.4" -> false,
+      "127.0.0.1" -> true,
+      "0.0.0.0" -> true,
+      "999.999.999.999" -> true
     ))
   }
 

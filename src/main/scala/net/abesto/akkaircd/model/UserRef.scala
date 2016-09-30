@@ -16,6 +16,6 @@ package net.abesto.akkaircd.model
 
 import akka.actor.ActorRef
 
-case class UserRef(tcp: ActorRef, user: User = User()) {
+case class UserRef(tcpConnection: ActorRef, tcpHandler: ActorRef, user: User = User()) {
 
 }

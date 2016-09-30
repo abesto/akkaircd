@@ -14,17 +14,17 @@
 
 package net.abesto.akkaircd.actors
 
-import akka.actor.{Actor, ActorLogging}
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import net.abesto.akkaircd.model.UserRef
 
 
 object UserRegistry {
   object Messages {
-
     case class Join(ref: UserRef)
-
     case class Leave(ref: UserRef)
     object AllUsers
+
+    case class GetByTcpConnection(ref: ActorRef)
   }
 }
 
@@ -34,15 +34,22 @@ class UserRegistry extends Actor with ActorLogging {
   import UserRegistry.Messages._
 
   var users: Seq[UserRef] = Seq()
+  var byTcpConnection: Map[ActorRef, UserRef] = Map()
 
   def receive: Receive = {
     case Join(user) =>
+      log.info(s"new user: ${user}")
       users :+= user
-      user.tcp ! TcpConnectionHandler.Messages.Write(s"welcome! we have ${users.length} users.\n")
+      byTcpConnection += ((user.tcpConnection, user))
 
     case Leave(user) =>
       users = users.filter(_ != user)
+      byTcpConnection -= user.tcpConnection
 
-    case AllUsers => sender() ! users
+    case AllUsers =>
+      log.info(s"all users for ${sender}: $users")
+      sender ! users
+
+    case GetByTcpConnection(ref) => sender ! byTcpConnection.get(ref)
   }
 }

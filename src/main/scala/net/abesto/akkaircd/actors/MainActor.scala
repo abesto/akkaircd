@@ -18,8 +18,10 @@ import akka.actor.Actor
 
 class MainActor extends Actor {
 
+  import context._
+
   override def preStart(): Unit = {
-    SingletonActors.initialize(context)
+    SingletonActors.initialize
     SingletonActors.tcpListener ! TcpListenerMessages.Listen
   }
 

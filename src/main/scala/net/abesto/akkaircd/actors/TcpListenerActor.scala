@@ -33,7 +33,7 @@ object TcpListenerMessages {
 class TcpListenerActor extends Actor with ActorLogging {
 
   import Tcp._
-  import context.system
+  import context._
 
   val settings = Settings(system)
 
@@ -49,8 +49,8 @@ class TcpListenerActor extends Actor with ActorLogging {
     case c@Connected(remote, local) =>
       log.info(s"Received connection $remote $local")
       val handler = context.actorOf(Props[TcpConnectionHandler])
-      handler ! TcpConnectionHandler.Messages.Connection(sender())
-      SingletonActors.userDB ! Join(UserRef(handler))
+      handler ! TcpConnectionHandler.Messages.Connection(sender)
+      SingletonActors.userDB ! Join(UserRef(sender, handler))
   }
 }
 

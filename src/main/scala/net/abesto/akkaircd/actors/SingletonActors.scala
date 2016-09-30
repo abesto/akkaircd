@@ -14,24 +14,27 @@
 
 package net.abesto.akkaircd.actors
 
-import akka.actor.{ActorContext, ActorSelection, Props}
+import akka.actor.{ActorContext, ActorSelection, ActorSystem, Props}
 import akka.routing.RoundRobinPool
 
 object SingletonActors {
-
   def initialize(implicit context: ActorContext): Unit = {
-    context.system.actorOf(Props[UserRegistry], Names.userDb)
-    context.system.actorOf(Props[TcpListenerActor], Names.tcpListener)
-    context.system.actorOf(RoundRobinPool(10).props(Props[MessageHandler]), Names.messageHandler) // scalastyle:ignore magic.number
+    initialize(context.system)
   }
 
-  def userDB(implicit context: ActorContext): ActorSelection = get(Names.userDb)
+  def initialize(system: ActorSystem): Unit = {
+    system.actorOf(Props[UserRegistry], Names.userDb)
+    system.actorOf(Props[TcpListenerActor], Names.tcpListener)
+    system.actorOf(RoundRobinPool(10).props(Props[MessageHandler]), Names.messageHandler) // scalastyle:ignore magic.number
+  }
 
-  protected def get(name: String)(implicit context: ActorContext): ActorSelection = context.actorSelection(s"/user/$name")
+  def userDB(implicit context: ActorSystem): ActorSelection = get(Names.userDb)
 
-  def messageHandler(implicit context: ActorContext): ActorSelection = get(Names.messageHandler)
+  def messageHandler(implicit context: ActorSystem): ActorSelection = get(Names.messageHandler)
 
-  def tcpListener(implicit context: ActorContext): ActorSelection = get(Names.tcpListener)
+  def tcpListener(implicit context: ActorSystem): ActorSelection = get(Names.tcpListener)
+
+  protected def get(name: String)(implicit context: ActorSystem): ActorSelection = context.actorSelection(s"/user/$name")
 
   protected object Names {
     val userDb = "user-db"
