@@ -29,22 +29,12 @@ import scala.util.Random
 
 
 class NickCommandTest extends IntegrationTest("NickCommandTest") {
-  val random = new Random()
-
-  def clientInetSocketAddress(): InetSocketAddress = new InetSocketAddress(random.nextInt(65534 - 10000) + 10000)
-
-  def serverInetSocketAddress(): InetSocketAddress = new InetSocketAddress("test-server", random.nextInt(10000)) // scalastyle:ignore magic.number
 
   "NICK" should "return ERR_NONICKNAMEGIVEN if called without parameters" in {
-    SingletonActors.tcpListener ! Connected(clientInetSocketAddress(), serverInetSocketAddress())
-
-    val user = awaitAssertAndGet(
-      (SingletonActors.userDB ?? GetByTcpConnection(testActor)).asInstanceOf[Option[UserRef]].get,
-      1 second
-    )
-    user.tcpHandler ! Received(ByteString("NICK\r\n"))
-
-    expectMsg(Register(user.tcpHandler))
-    assert(receiveOne(1 second).asInstanceOf[Write].data.utf8String == ":akkairc.localhost 431 * :No nickname given\r\n")
+    val client = new TestClient("nick-errnonick")
+    client connect()
+    client send "NICK"
+    client.probe.expectMsg(Register(client.user.tcpHandler))
+    client assertReceived ":akkairc.localhost 431 * :No nickname given"
   }
 }

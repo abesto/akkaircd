@@ -50,6 +50,10 @@ class UserRegistry extends Actor with ActorLogging {
       log.info(s"all users for ${sender}: $users")
       sender ! users
 
-    case GetByTcpConnection(ref) => sender ! byTcpConnection.get(ref)
+    case GetByTcpConnection(ref) =>
+      log.debug(s"looking up user by tcp connection $ref")
+      log.debug(s"$users")
+      log.debug(s"$byTcpConnection")
+      sender ! byTcpConnection.get(ref)
   }
 }

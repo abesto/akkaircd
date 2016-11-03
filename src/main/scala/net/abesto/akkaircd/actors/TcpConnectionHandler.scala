@@ -17,6 +17,7 @@ package net.abesto.akkaircd.actors
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.io.Tcp
 import akka.util.ByteString
+
 import net.abesto.akkaircd.model.messages.{MessageInflator, NumericReply}
 import net.abesto.akkaircd.parser.MessageFormatParser
 
